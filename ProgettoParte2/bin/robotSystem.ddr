@@ -1,0 +1,314 @@
+RobotSystem finalRobotProject
+/*
+ * ====================================================================
+ * This model is the result of the ANALYSIS PHASE
+ * ====================================================================
+*/     
+   
+/* 
+ * MESSAGES exchanged by the system components 
+ */
+Dispatch robotcommand     : robotcommand(X)
+Dispatch robotcommandd    : robotcommandd(X,Y)
+Dispatch inspectionresult : inspectionresult(X)
+Dispatch picture    	  : picture
+
+/*
+ * EVENTS emitted by the built-in INPUT GUI
+ */
+Event harmful    : harmful      //from Airport Security Center;  X=B-O-M-B
+Event inputcmd : usercmd(X) //dal tasto input
+Event usercmd  : usercmd(X) //dai tastoni
+
+/*
+ * EVENTS emitted by the robot sensors
+ */
+Event sensordata : sensordata(X)
+  
+ /*---------------------------------------------------
+ * CONTEXT for the Robot and
+ * for FIRST INTEGRATION TESTING PROTOTYPEqarobotexecutor 
+ * ---------------------------------------------------
+ */
+Context ctxRobot ip [ host="localhost" port=8020]  -httpserver 
+EventHandler evh for harmful { solve assert(harmful) for qarobotcontroller};
+
+//EventHandler evh for sensordata -print;
+
+//Context ctxController ip [ host="localhost" port=8021]  //-httpserver 
+//Context ctxSecondRobot ip [ host="localhost" port=8022]   
+//Context ctxASC ip [ host="localhost" port=8023]   
+
+
+QActor asc context ctxRobot{
+	
+	Plan init normal
+		println(asc(starts));
+		switchToPlan handlingInspectionResults
+	
+	Plan handlingInspectionResults
+	println("Asc waiting");
+		receiveMsg time(2000000);
+		onMsg inspectionresult : inspectionresult(harmful)   ->   emit harmful : harmful;
+				onMsg inspectionresult : inspectionresult(harmful)   ->   println("ASC: bag is harmful");
+		onMsg inspectionresult : inspectionresult(safe)   ->  println("ASC: bag is safe");
+	repeatPlan 0
+}
+
+QActor qarobotcontroller context ctxRobot {
+	
+	Rules{ 
+		
+	printMoved :-
+	 	move(MOVE,DUR),
+	 	printest("mossa:"),
+	 	printest(MOVE).
+		
+	addMove(MOVE) :-
+	 move(MOVEPRE,TIMEPRE),
+	 getTimestamp(TIME),
+	 subtract(TIME,TIMEPRE,DURATION),
+	 assert(moved(MOVEPRE,DURATION)),
+	 retract(move(MOVEPRE,TIMEPRE)),
+	 assert(move(MOVE,TIME)),
+	 !.
+	 		
+	addMove(MOVE) :-
+	retractall(moved(_,_)),
+	retractall(move(_)),
+	 getTimestamp(TIME),
+	 assert(move(MOVE,TIME)).		
+	 		
+	lastMove :-
+	 move(MOVEPRE,TIMEPRE),
+	 getTimestamp(TIME),
+	 subtract(TIME,TIMEPRE,DURATION),
+	 assert(moved(MOVEPRE,DURATION)),
+	 retract(move(MOVEPRE,TIMEPRE)).  
+	 		
+	duplicateMoves :-
+	 findall(MOVE,moved(MOVE,DURATION), MOVES),
+	 findall(DURATION, moved(MOVE,DURATION), DURATIONS),
+		duplicateMoves(MOVES,DURATIONS).
+	
+	prepareMoves :-
+	 findall(MOVE,moved(MOVE,DURATION), MOVES),
+	 findall(DURATION, moved(MOVE,DURATION), DURATIONS),
+		prepareMoves(MOVES,DURATIONS).	
+		
+	autoReverse(A) :-
+	 findall(MOVE,moved(MOVE,DURATION), MOVES),
+	 	findall(DURATION, moved(MOVE,DURATION), DURATIONS),
+	 robotgui(MOVES,DURATIONS).
+	 
+	autoDirect(A) :-
+	 findall(MOVE,moved(MOVE,DURATION), MOVES),
+	 findall(DURATION, moved(MOVE,DURATION), DURATIONS),
+	 reverse(MOVES,INV_MOVES),
+	 reverse(DURATIONS,INV_DURATIONS),
+	 robotgui(INV_MOVES,INV_DURATIONS).
+	 
+	}
+	
+	Plan init normal     
+		println(qacontroller(start));  
+		solve retractall(sensor(_)) time(0) onFailSwitchTo prologFailure;
+		solve consult("./utils.pl") time(0) onFailSwitchTo prologFailure;
+		//solve assert(testdur(5000)) time(0);
+		//[!? testdur(DUR)] println(DUR);
+		//[!? testdur(DUR)] forward qarobotcontroller -m inputcmd : usercmd(DUR);
+		//receiveMsg time(20000);
+		//onMsg inputcmd : usercmd(DUR) -> solve nanna(DUR) time(0) onFailSwitchTo prologFailure;
+	//	println("ho dormito la prima volta");
+	//	onMsg inputcmd : usercmd(DUR) -> delay time(DUR);
+	//	println("ho dormito la seconda volta");
+//[!? testdur(DUR)] solve nanna(DUR) time(0) onFailSwitchTo prologFailure;
+ 		switchToPlan sendUserMoveCommands  
+
+	/*
+	 * Waits for an input event and then sends a command to qarobotexecutor
+	 */ 
+	 	 
+	Plan sendUserMoveCommands resumeLastPlan
+	
+	//stop blinking the led which was started during the autonomous phase
+	//forward qarobotexecutor -m robotcommand : robotcommand(stopLed); 	
+	
+	//[!? harmful] println("Alarm Detected: Sending Second Robot Moves");
+	//[!? harmful] forward qarobotexecutor -m robotcommand : robotcommand(blinkLed);
+	//[!? harmful] solve prepareMoves time(0) onFailSwitchTo prologFailure;
+	//[?? harmful] switchToPlan sendSecondRobot;	
+	[?? harmful] println("rimosso harmful");
+	
+	//println("CONTROLLER: SENDING OPERATOR COMMANDS TO THE ROBOT");
+	sense time(200000)  harmful,inputcmd,usercmd, sensordata-> continue,continue,continue, continue ;   
+		  		 
+  		[ ?? tout(X,Y)] switchToPlan handleTimeOut ;   
+ 		printCurrentEvent ; 
+	//the sensor notifies something
+		onEvent sensordata : sensordata(X) -> solve lastMove time(0) onFailSwitchTo prologFailure;
+				
+		onEvent sensordata : sensordata(X) -> solve duplicateMoves time(0) onFailSwitchTo prologFailure;
+				
+		onEvent sensordata : sensordata(X) -> switchToPlan inspection;		
+
+		//send a move to the robot and save it for later
+   		onEvent usercmd : usercmd(CMD) -> 
+   				forward qarobotexecutor -m robotcommand : robotcommand(CMD) ;
+   				
+   		onEvent usercmd : usercmd(robotgui(CMD)) -> 
+				solve addMove(CMD) time(0) onFailSwitchTo prologFailure;
+		
+		   		onEvent usercmd : usercmd(CMD) -> 
+					forward qarobotexecutor -m robotcommand : robotcommand(stopLed); 	
+
+  	    repeatPlan 0	
+
+	Plan inspection
+	println("START INSPECTION");
+	//The robot draws a square around the bag
+		//START BLINKING THE LED
+		forward qarobotexecutor -m robotcommand : robotcommand(blinkLed); 	
+		//HALF LEFT
+		 forward qarobotexecutor -m robotcommandd : robotcommandd(a(low),1000);
+		 forward qarobotexecutor -m robotcommandd : robotcommandd(w(low),2000);
+delay time(3000);
+			 println("Controller to robot --> please shoot a photo!");
+			 forward qarobotexecutor -m robotcommand : robotcommand(shootAPic);
+			 receiveMsg time(10000);
+			 onMsg picture : picture -> println("Analizing pic");
+			 
+ 		//FIRST SIDE
+		 forward qarobotexecutor -m robotcommandd : robotcommandd(d(low),1000);
+		 forward qarobotexecutor -m robotcommandd : robotcommandd(w(low),4000);
+delay time(5000);		 
+			 println("Controller to robot --> please shoot a photo!");
+			 forward qarobotexecutor -m robotcommand : robotcommand(shootAPic);
+			 receiveMsg time(10000);
+			 onMsg picture : picture -> println("Analizing pic");
+			
+ 		 //SECOND SIDEharmful
+		 forward qarobotexecutor -m robotcommandd : robotcommandd(d(low),1000);
+		 forward qarobotexecutor -m robotcommandd : robotcommandd(w(low),4000);
+delay time(5000);		 
+			 println("Controller to robot --> please shoot a photo!");
+			 forward qarobotexecutor -m robotcommand : robotcommand(shootAPic);
+			 receiveMsg time(10000);
+			 onMsg picture : picture -> println("Analizing pic");
+			 
+		//THIRD SIDE
+		 forward qarobotexecutor -m robotcommandd : robotcommandd(d(low),1000);
+		 forward qarobotexecutor -m robotcommandd : robotcommandd(w(low),4000);
+delay time(5000);		 
+			 println("Controller to robot --> please shoot a photo!");
+			 forward qarobotexecutor -m robotcommand : robotcommand(shootAPic);
+			 receiveMsg time(10000);
+			 onMsg picture : picture -> println("Analizing pic");
+			
+ 		 //HALF SIDE
+		 forward qarobotexecutor -m robotcommandd : robotcommandd(d(low),1000);
+		 forward qarobotexecutor -m robotcommandd : robotcommandd(w(low),2000);
+delay time(5000);		 
+	//CORRECT THE ORIENTATION
+		 forward qarobotexecutor -m robotcommandd : robotcommandd(a(low),1000);
+delay time(1000);		 
+
+		  		//STOP BLINKING THE LED
+		forward qarobotexecutor -m robotcommand : robotcommand(stopLed); 	
+		
+		 println("Sending the result to the A S C");
+		 forward asc -m inspectionresult : inspectionresult(harmful);
+	//	delay time(5000); //per vedere l'event
+
+			println("START AUTONOMOUS");
+	switchToPlan autonomousPhase
+	
+	Plan autonomousPhase 
+		
+	[!? harmful] println("Alarm Detected: Blinking led");
+	[!? harmful] forward qarobotexecutor -m robotcommand : robotcommand(blinkLed);
+		[!? clonedMoved(MOVE,DURATION)] forward qarobotexecutor -m robotcommandd : robotcommandd(MOVE,DURATION);
+   		[?? clonedMoved(MOVE,DURATION)] solve suspend(DURATION) time(0) onFailSwitchTo prologFailure;
+   		solve clonedMoved(MOVE,DURATION) time(0) onFailSwitchTo sendUserMoveCommands ;
+   	repeatPlan 0
+   	   	 
+   	Plan sendSecondRobot 
+   		//[?? clonedMoved(MOVE,DURATION)] forward qasecondrobot -m robotcommandd : robotcommandd(MOVE,DURATION);
+   		solve clonedMoved(MOVE,DURATION) time(0) onFailSwitchTo sendUserMoveCommands;  
+   	repeatPlan 0	 
+   	   	 
+/*
+ * ALTERNATIVE PLANS
+ */
+ 	Plan prologFailure resumeLastPlan            
+		println("Prolog goal FAILURE" )     
+	Plan handleAlarm resumeLastPlan    
+		println("handleAlarm" )       	  
+	Plan handleTimeOut     resumeLastPlan
+		println("handleTout and stop" )       	  
+}  
+ 
+/*
+ * ---------------------------------------------------
+ * ROBOT that works according to the application requirements t 
+ * ---------------------------------------------------
+ */        
+Robot enterprise  QActor qarobotexecutor context ctxRobot   { 
+	
+	Plan init normal
+		println( qarobotexecutor(start) );
+		solve retractall(sensor(_)) time(0);
+		solve consult("./robotTalkTheory.pl") time(0) onFailSwitchTo  prologFailure ;   		
+  		println("ROBOT: WAITS FOR A COMMAND");  
+  	switchToPlan executeCommands
+	
+	Plan executeCommands   
+	
+		receiveMsg time(2000000);
+		//sense time (20000000) alarm -> continue;
+		
+		//onEvent alarm : alarm(X) -> solve blinkLed time(0);
+				
+		//executes a command		
+		onMsg robotcommand : robotcommand(MOVE)   ->  solve MOVE time(0) ; 
+		onMsg robotcommand : robotcommand(shootAPic)   ->  
+			forward qarobotcontroller -m  picture : picture; 
+		onMsg robotcommandd : robotcommandd(MOVE,DUR)   ->  solve robotdur(MOVE,DUR) time(0) ; 
+		//[ !? goalResult(R)]  println(resultOfGoal(R)) ;   
+		//[ !? result(R)]  println(resultOfCmd(R)) ; 
+		//onMsg robotcommand : robotcommand(MOVE)   ->  println("MOSSA SINGOLA"); 
+		//onMsg robotcommandd : robotcommandd(MOVE,DUR)   ->  println("MOSSA DOPPIA");  
+		
+		repeatPlan 0
+ 	
+/*
+ * ALTERNATIVE PLANS
+ */
+ 	Plan prologFailure resumeLastPlan            
+		println("Prolog goal FAILURE" )     
+	    	  
+}
+/*
+Robot mock  QActor qasecondrobot context ctxSecondRobot   { 
+	
+	Plan init normal
+		println( qasecondrobot(start) );
+				solve retractall(sensor(_)) time(0);
+		solve consult("./robotTalkTheory.pl") time(0) onFailSwitchTo  prologFailure ;   		
+  		println("ROBOT 2: Start Moving");  
+  	switchToPlan executeCommands
+	
+	Plan executeCommands   
+	
+		receiveMsg time(2000000);
+		onMsg robotcommandd : robotcommandd(MOVE,DUR)   ->  solve robotdur(MOVE,DUR) time(0) ;   
+		
+	repeatPlan 0
+ 	
+/*
+ * ALTERNATIVE PLANS
+ 
+ 	Plan prologFailure resumeLastPlan            
+		println("Prolog goal FAILURE" )     
+	    	  
+}*/

@@ -1,0 +1,186 @@
+/* 
+ * ===================================
+ * mock
+ * ===================================
+ */ 
+RobotBase mock               
+ //BASIC                
+motorleft  = Motor  [ simulated 0  ]  position: LEFT
+motorright = Motor  [ simulated 0  ]  position: RIGHT
+l1Mock     = Line   [ simulated 0  ]  position: BOTTOM 
+distFrontMock= Distance [ simulated 0  ] position: FRONT
+mgn1 = Magnetometer  [ simulated 0 ] private position: FRONT
+//COMPOSED   
+rot    = Rotation [ mgn1  ] private position: FRONT
+motors = Actuators [ motorleft , motorright  ] private position: BOTTOM
+Mainrobot mock  [ motors,rot ]      
+; 
+  
+RobotBase mymock               
+ //BASIC                  
+motorleft  = Motor  [ simulated 0  ]  position: LEFT
+motorright = Motor  [ simulated 0  ]  position: RIGHT
+distFrontMock= Distance [ simulated 0  ] position: FRONT
+led = Color [simulated 0] position: BACK
+//COMPOSED   
+motors = Actuators [ motorleft , motorright  ] private position: BOTTOM
+Mainrobot mymock  [ motors  ]      
+; 
+ /*  
+ * ===================================
+ * nano1
+ * ===================================
+ */
+RobotBase   nano1   
+//BASIC                          
+motorleft  = Motor  [ gpiomotor pincw 8 pinccw 9  ]  position: LEFT
+motorright = Motor  [ gpiomotor pincw 12 pinccw 13  ]  position: RIGHT
+//distanceRadar = Distance  [ sonarhcsr04 pintrig 0 pinecho 2]  position: FRONT
+//line = Line   [ gpioswitch pin 15 activelow ]  position: BOTTOM 
+distanceFront = Distance  [ serial rate 9600 ]  position: FRONT  
+linefBottom   = Line   [ serial rate 9600 ]  position: BOTTOM 
+magneto       = Magnetometer [ serial rate 9600 ]  position: TOP 
+//COMPOSED
+motors = Actuators [ motorleft , motorright  ] private position: BOTTOM
+Mainrobot nano1  [ motors ]    
+;
+
+ /*  
+ * ===================================
+ * nano2
+ * ===================================
+ */
+RobotBase   nano2
+//BASIC                          
+motorleft  = Motor  [ gpiomotor pincw 2 pinccw 3  ]  position: LEFT
+motorright = Motor  [ gpiomotor pincw 12 pinccw 13  ]  position: RIGHT
+distanceRadar = Distance  [ sonarhcsr04 pintrig 5 pinecho 4]  position: FRONT
+magneto       = Magnetometer [ magneto5883l x -68 y 117 z 0 ]  position: TOP 
+//COMPOSED
+motors = Actuators [ motorleft , motorright  ] private position: BOTTOM
+Mainrobot nano2  [ motors ]    
+;    
+ 
+/* ===================================
+ * servos
+ * ===================================
+ */
+RobotBase  servos  
+//BASIC                         
+motorleft  = Motor  [ servoblaster pin 1 pos180 0.24 pos0 0.055 ]  position: LEFT
+motorright = Motor  [ servoblaster pin 7 pos180 0.24 pos0 0.055 ]  position: RIGHT
+//COMPOSED
+motors = Actuators [ motorleft , motorright  ] private position: BOTTOM
+Mainrobot servos  [ motors ]   
+;  
+/* 
+ * ===================================
+ * smilzo
+ * ===================================
+ */
+RobotBase  smilzo  
+//BASIC                         
+motorleft  = Motor  [ gpiomotor pincw 8 pinccw 9  ]  position: LEFT
+motorright = Motor  [ gpiomotor pincw 12 pinccw 13  ]  position: RIGHT
+distanceFront = Distance  [ serial rate 9600 ]  position: FRONT  
+linefBottom   = Line   [ serial rate 9600 ]  position: BOTTOM 
+magneto       = Magnetometer [ serial rate 9600 ]  position: TOP 
+//COMPOSED
+motors = Actuators [ motorleft , motorright  ] private position: BOTTOM
+Mainrobot smilzo  [ motors ]   
+;  
+ /*
+ * ===================================
+ * initio
+ * ===================================
+ */
+RobotBase  initio             
+//BASIC               
+motorleft = Motor  [ gpiomotor  pincw 3 pinccw 2  ]  position: LEFT
+motorright = Motor  [ gpiomotor pincw 0 pinccw 4  ]  position: RIGHT
+      
+l1Initio = Line   [ gpioswitch pin 15 activelow ]  position: BOTTOM           
+distanceRadar = Distance  [ sonarhcsr04 pintrig 14 pinecho 13]  position: FRONT_TOP   
+d1Initio = Distance  [ process "/configuration/initio/hc-sr04"]  position: FRONT 
+mgn1 = Magnetometer  [ magneto5883l x -68 y 117 z 0 ] private position: FRONT       
+     
+//servoRadar =  Servo  [ servoblaster pin 1 pos180 0.24  pos0 0.055 ]  position: FRONT   
+
+//COMPOSED
+motors = Actuators [ motorleft , motorright  ] private position: BOTTOM
+rot = Rotation [ mgn1  ] private position: FRONT
+//radar = Radar [ servoRadar , distanceRadar  ] private position: FRONT 
+//ROBOT
+Mainrobot initio [ motors , rot] pid ( 10,3000,1)  
+; 
+///*
+// * ===================================
+// * bbb
+// * ===================================
+// */
+//RobotBase     
+////BASIC                         
+//motorleft = Motor  [ gpiomotor pincw 3 pinccw 2  ]  position: LEFT
+//motorright = Motor  [ gpiomotor pincw 12 pinccw 13  ]  position: RIGHT
+//mgn1 = Magnetometer  [ magneto5883l x 172 y 34 z 0 ] private position: FRONT  
+//linefront = Line   [ serial rate 9600 ]  position: FRONT    
+//distfront = Distance  [ serial rate 9600 ]  position: FRONT 
+//distleft  = Distance  [ serial rate 9600 ]  position: LEFT
+//distright = Distance  [ serial rate 9600 ]  position: RIGHT  
+//impact1 = Impact [ gpioswitch pin 15 pulldown ]  position: FRONT 
+////COMPOSED
+//rot = Rotation [ mgn1  ] private position: FRONT
+//motors = Actuators [ motorleft , motorright  ] private position: BOTTOM
+//Mainrobot bbb  [ motors,rot  ] pid (6,250,1)  
+//;
+
+/* 
+ * ===================================
+ * nano0
+ * ===================================
+ */
+RobotBase nano0 
+//BASIC                          
+motorleft  = Motor  [ gpiomotor pincw 8 pinccw 9  ]  position: LEFT
+motorright = Motor  [ gpiomotor pincw 12 pinccw 13  ]  position: RIGHT
+distanceRadar = Distance  [ sonarhcsr04 pintrig 0 pinecho 2]  position: FRONT_TOP
+line = Line   [ gpioswitch pin 15 activelow ]  position: BOTTOM 
+//COMPOSED
+motors = Actuators [ motorleft , motorright  ] private position: BOTTOM
+Mainrobot nano0  [ motors ]   
+;  
+
+
+
+/* 
+ * ===================================
+ * goto
+ * ===================================
+ */
+RobotBase  goto  
+ //BASIC                
+motorleft  = Motor  [ simulated 0  ]  position: LEFT
+motorright = Motor  [ simulated 0  ]  position: RIGHT
+l1Mock     = Line   [ simulated 0  ]  position: BOTTOM 
+distFrontMock= Distance [ simulated 0  ] position: FRONT
+mgn1 = Magnetometer  [ simulated 0 ] private position: FRONT
+//COMPOSED   
+rot    = Rotation [ mgn1  ] private position: FRONT
+motors = Actuators [ motorleft , motorright  ] private position: BOTTOM
+Mainrobot goto  [ motors, rot ]   
+;  
+
+/*
+ * 
+ * ENTERPRISE
+ * 
+ */
+RobotBase enterprise 
+//BASIC                          
+motorleft  = Motor  [ gpiomotor pincw 2 pinccw 3  ]  position: LEFT
+motorright = Motor  [ gpiomotor pincw 4 pinccw 5  ]  position: RIGHT
+distanceRadar = Distance  [ sonarhcsr04 pintrig 22 pinecho 21]  position: FRONT_TOP
+//COMPOSED
+motors = Actuators [ motorleft , motorright  ] private position: BOTTOM
+Mainrobot enterprise  [ motors ]   
+;  
